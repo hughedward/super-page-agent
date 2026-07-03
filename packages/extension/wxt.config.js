@@ -47,10 +47,10 @@ export default defineConfig({
 		},
 	}),
 	zip: {
-		artifactTemplate: 'page-agent-ext-{{version}}-{{browser}}.zip',
+		artifactTemplate: 'super-page-agent-{{version}}-{{browser}}.zip',
 	},
 	manifest: {
-		key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqbzT0iTYeYlnCvDJIGDnGU8oarJgZILDzSfLi/ufuSxXEPDKuMyD892GhvrMCZNVHS11Sh6NYUOc/PcUOhtaR2urHtcNkrpSJNV10zUamY7fxBdVEkOucfyLu8INVy+teis62MoRWYPaUPkfZUjrLGW8MsZ9aFzARfu9GGDEp2EAYsWDN6w6vyz9LJ82pm542EWnVT4MjmDPgvYFCWGBtaU/dfHD+GAX6URJFapsCvryVURKJ+76c/GO9/I3EX1IBfbY6dec78bLCMvVxiTmiv36KyGPwX1OpakW8IiCpXWdbAxjm+plbYlp5t5zTyyoE3sOSFeXsBH0Kg27o8GcvQIDAQAB',
+		key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAn7jBOSRD+dmbuWG+DCOqWEXQJO+i1GutWmYdbfwjVswixGZO/MoIOiuwLqX/mM9OyPzZlXzUhgGFP+nSTP5IijqiC9ekaD7B6WTqPreayuHQ/7zcQzejp8r0WAnXI7ABCQXxquZTKDtiYpcDFxcVyQQ2Tx9sZ6ZtbZOBo7NHpMT9reuIt1aoSTN+E6m4yiJbl1DXPpGqYMBOcvAdNyepNkQ3X4+kqNz6F70ncv+sCT6rwVW60jf5Vf82o6316HI4Bdwbt+IxPAQSE7NkE4VWXvbPMvoLe7LpeC2n+MoHdyp0BD7MCgRS+NJB5W1/lKuaVuCIiagllKtk451wNB6d1QIDAQAB',
 		default_locale: 'en',
 		name: '__MSG_extName__',
 		description: '__MSG_extDescription__',

@@ -185,7 +185,7 @@ export default function App() {
 				<div className="flex items-center gap-2">
 					<Logo className="size-5" />
 					<div className="min-w-0">
-						<div className="text-sm font-medium leading-tight">Page Agent Ext</div>
+						<div className="text-sm font-medium leading-tight">Super Page Agent</div>
 						<select
 							value={workspaceState.activeWorkspaceId}
 							onChange={(event) =>

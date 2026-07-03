@@ -40,7 +40,7 @@ export default function App() {
 					className="flex items-center gap-2 px-5 h-12 border-b hover:bg-muted/30 transition-colors"
 				>
 					<Logo className="size-5" />
-					<span className="text-sm font-semibold tracking-tight">Page Agent Hub</span>
+					<span className="text-sm font-semibold tracking-tight">Super Page Agent Hub</span>
 					<span className="text-[9px] font-medium uppercase tracking-wider text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded px-1.5 py-0.5">
 						Beta
 					</span>
@@ -49,7 +49,7 @@ export default function App() {
 				<div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 					<div className="text-xs text-muted-foreground leading-relaxed space-y-2">
 						<p>
-							Page Agent Hub lets local apps (e.g. MCP servers) control the Page Agent extension via
+							Super Page Agent Hub lets local apps (e.g. MCP servers) control the extension via
 							WebSocket.
 						</p>
 						<p>
