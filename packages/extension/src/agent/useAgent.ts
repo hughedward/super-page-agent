@@ -18,7 +18,13 @@ import {
 	loadAnnotations,
 } from './annotations'
 import { DEMO_CONFIG, ROUTING_BASE_URL, migrateLegacyEndpoint } from './constants'
+import {
+	type WorkspaceMemory,
+	composeMemoriesContext,
+	loadMemories,
+} from './memories'
 import { type BrowserSkill, composeSkillsContext, loadSkills } from './skills'
+import { DEFAULT_WORKSPACE_ID, loadWorkspaceState } from './workspaces'
 
 /** Language preference: undefined means follow system */
 export type LanguagePreference = SupportedLanguage | undefined
@@ -56,13 +62,17 @@ export function useAgent(): UseAgentResult {
 	const [config, setConfig] = useState<ExtConfig | null>(null)
 	const [skills, setSkills] = useState<BrowserSkill[]>([])
 	const [annotations, setAnnotations] = useState<PageAnnotation[]>([])
+	const [memories, setMemories] = useState<WorkspaceMemory[]>([])
+	const [activeWorkspaceId, setActiveWorkspaceId] = useState(DEFAULT_WORKSPACE_ID)
 
 	useEffect(() => {
 		Promise.all([
 			chrome.storage.local.get(['llmConfig', 'language', 'advancedConfig']),
 			loadSkills(),
 			loadAnnotations(),
-		]).then(([result, loadedSkills, loadedAnnotations]) => {
+			loadMemories(),
+			loadWorkspaceState(),
+		]).then(([result, loadedSkills, loadedAnnotations, loadedMemories, workspaceState]) => {
 			let llmConfig = (result.llmConfig as LLMConfig) ?? DEMO_CONFIG
 			const language = (result.language as SupportedLanguage) || undefined
 			const advancedConfig = (result.advancedConfig as AdvancedConfig) ?? {}
@@ -86,6 +96,8 @@ export function useAgent(): UseAgentResult {
 
 			setSkills(loadedSkills)
 			setAnnotations(loadedAnnotations)
+			setMemories(loadedMemories)
+			setActiveWorkspaceId(workspaceState.activeWorkspaceId)
 			setConfig({ ...llmConfig, ...advancedConfig, language })
 		})
 	}, [])
@@ -97,6 +109,14 @@ export function useAgent(): UseAgentResult {
 			}
 			if (changes.pageAnnotations) {
 				loadAnnotations().then(setAnnotations).catch(console.error)
+			}
+			if (changes.workspaceMemories) {
+				loadMemories().then(setMemories).catch(console.error)
+			}
+			if (changes.workspaceState) {
+				loadWorkspaceState()
+					.then((workspaceState) => setActiveWorkspaceId(workspaceState.activeWorkspaceId))
+					.catch(console.error)
 			}
 		}
 
@@ -112,7 +132,8 @@ export function useAgent(): UseAgentResult {
 			...agentConfig,
 			instructions: {
 				system: systemInstruction,
-				getPageInstructions: (url) => composePageContext(url, skills, annotations),
+				getPageInstructions: (url) =>
+					composePageContext(url, skills, annotations, memories, activeWorkspaceId),
 			},
 		})
 		agentRef.current = agent
@@ -144,7 +165,7 @@ export function useAgent(): UseAgentResult {
 			agent.removeEventListener('activity', handleActivity)
 			agent.dispose()
 		}
-	}, [annotations, config, skills])
+	}, [activeWorkspaceId, annotations, config, memories, skills])
 
 	const execute = useCallback(async (task: string) => {
 		const agent = agentRef.current
@@ -205,9 +226,15 @@ export function useAgent(): UseAgentResult {
 function composePageContext(
 	url: string,
 	skills: BrowserSkill[],
-	annotations: PageAnnotation[]
+	annotations: PageAnnotation[],
+	memories: WorkspaceMemory[],
+	workspaceId: string
 ): string | undefined {
-	const context = [composeSkillsContext(skills, url), composeAnnotationsContext(annotations, url)]
+	const context = [
+		composeSkillsContext(skills, url, workspaceId),
+		composeMemoriesContext(memories, url, workspaceId),
+		composeAnnotationsContext(annotations, url, workspaceId),
+	]
 		.filter(Boolean)
 		.join('\n\n')
 

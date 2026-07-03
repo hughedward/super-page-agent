@@ -1,7 +1,11 @@
+import { matchesUrlPattern } from './urlPatterns'
+import { DEFAULT_WORKSPACE_ID } from './workspaces'
+
 const ANNOTATIONS_STORAGE_KEY = 'pageAnnotations'
 
 export interface PageAnnotation {
 	id: string
+	workspaceId: string
 	label: string
 	note: string
 	urlPattern: string
@@ -32,13 +36,21 @@ export async function saveAnnotations(annotations: PageAnnotation[]): Promise<vo
 
 export function getMatchingAnnotations(
 	annotations: PageAnnotation[],
-	url: string
+	url: string,
+	workspaceId: string = DEFAULT_WORKSPACE_ID
 ): PageAnnotation[] {
-	return annotations.filter((annotation) => matchesUrlPattern(annotation.urlPattern, url))
+	return annotations.filter(
+		(annotation) =>
+			annotation.workspaceId === workspaceId && matchesUrlPattern(annotation.urlPattern, url)
+	)
 }
 
-export function composeAnnotationsContext(annotations: PageAnnotation[], url: string): string {
-	const matched = getMatchingAnnotations(annotations, url)
+export function composeAnnotationsContext(
+	annotations: PageAnnotation[],
+	url: string,
+	workspaceId: string = DEFAULT_WORKSPACE_ID
+): string {
+	const matched = getMatchingAnnotations(annotations, url, workspaceId)
 	if (!matched.length) return ''
 
 	const sections = matched.map((annotation) => {
@@ -73,6 +85,7 @@ function normalizeAnnotations(value: unknown[]): PageAnnotation[] {
 
 			return {
 				id: String(raw.id),
+				workspaceId: raw.workspaceId ? String(raw.workspaceId) : DEFAULT_WORKSPACE_ID,
 				label: String(raw.label),
 				note: raw.note ? String(raw.note) : '',
 				urlPattern: String(raw.urlPattern),
@@ -92,31 +105,4 @@ function normalizeBounds(bounds: PageAnnotation['bounds']): PageAnnotation['boun
 	const { x, y, width, height } = bounds
 	if ([x, y, width, height].some((value) => typeof value !== 'number')) return undefined
 	return { x, y, width, height }
-}
-
-function matchesUrlPattern(pattern: string, url: string): boolean {
-	if (pattern === '*') return true
-	if (!url) return false
-
-	try {
-		const parsedUrl = new URL(url)
-		const normalizedPattern = pattern.trim()
-
-		if (normalizedPattern.startsWith('*.')) {
-			const domain = normalizedPattern.slice(2)
-			return parsedUrl.hostname === domain || parsedUrl.hostname.endsWith(`.${domain}`)
-		}
-
-		if (normalizedPattern.includes('://')) {
-			return new RegExp(`^${escapeRegExp(normalizedPattern).replaceAll('\\*', '.*')}$`).test(url)
-		}
-
-		return parsedUrl.hostname === normalizedPattern || parsedUrl.hostname.endsWith(`.${normalizedPattern}`)
-	} catch {
-		return false
-	}
-}
-
-function escapeRegExp(value: string): string {
-	return value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
 }

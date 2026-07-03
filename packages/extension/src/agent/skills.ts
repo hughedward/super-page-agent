@@ -1,7 +1,11 @@
+import { matchesUrlPattern, normalizeMatchPatterns } from './urlPatterns'
+import { DEFAULT_WORKSPACE_ID, GLOBAL_WORKSPACE_ID } from './workspaces'
+
 const SKILLS_STORAGE_KEY = 'browserSkills'
 
 export interface BrowserSkill {
 	id: string
+	workspaceId: string
 	name: string
 	description?: string
 	enabled: boolean
@@ -13,6 +17,7 @@ export interface BrowserSkill {
 export const BUILTIN_SKILLS: BrowserSkill[] = [
 	{
 		id: 'general-web-assistant',
+		workspaceId: GLOBAL_WORKSPACE_ID,
 		name: 'General Web Assistant',
 		description: 'Baseline guidance for safe browser task execution.',
 		enabled: true,
@@ -38,16 +43,25 @@ export async function saveSkills(skills: BrowserSkill[]): Promise<void> {
 	await chrome.storage.local.set({ [SKILLS_STORAGE_KEY]: normalizeSkills(skills) })
 }
 
-export function getMatchingSkills(skills: BrowserSkill[], url: string): BrowserSkill[] {
+export function getMatchingSkills(
+	skills: BrowserSkill[],
+	url: string,
+	workspaceId: string = DEFAULT_WORKSPACE_ID
+): BrowserSkill[] {
 	return skills.filter((skill) => {
+		if (skill.workspaceId !== workspaceId && skill.workspaceId !== GLOBAL_WORKSPACE_ID) return false
 		if (!skill.enabled) return false
 		if (!skill.content.trim()) return false
 		return skill.matchPatterns.some((pattern) => matchesUrlPattern(pattern, url))
 	})
 }
 
-export function composeSkillsContext(skills: BrowserSkill[], url: string): string {
-	const matched = getMatchingSkills(skills, url)
+export function composeSkillsContext(
+	skills: BrowserSkill[],
+	url: string,
+	workspaceId: string = DEFAULT_WORKSPACE_ID
+): string {
+	const matched = getMatchingSkills(skills, url, workspaceId)
 	if (!matched.length) return ''
 
 	const sections = matched.map((skill) => {
@@ -76,42 +90,14 @@ function normalizeSkills(value: unknown[]): BrowserSkill[] {
 			if (!raw.id || !raw.name) return null
 			return {
 				id: String(raw.id),
+				workspaceId: raw.workspaceId ? String(raw.workspaceId) : DEFAULT_WORKSPACE_ID,
 				name: String(raw.name),
 				description: raw.description ? String(raw.description) : undefined,
 				enabled: raw.enabled !== false,
-				matchPatterns: Array.isArray(raw.matchPatterns)
-					? raw.matchPatterns.map(String).filter(Boolean)
-					: ['*'],
+				matchPatterns: normalizeMatchPatterns(raw.matchPatterns),
 				content: raw.content ? String(raw.content) : '',
 				updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
 			}
 		})
 		.filter((skill): skill is BrowserSkill => skill !== null)
-}
-
-function matchesUrlPattern(pattern: string, url: string): boolean {
-	if (pattern === '*') return true
-	if (!url) return false
-
-	try {
-		const parsedUrl = new URL(url)
-		const normalizedPattern = pattern.trim()
-
-		if (normalizedPattern.startsWith('*.')) {
-			const domain = normalizedPattern.slice(2)
-			return parsedUrl.hostname === domain || parsedUrl.hostname.endsWith(`.${domain}`)
-		}
-
-		if (normalizedPattern.includes('://')) {
-			return new RegExp(`^${escapeRegExp(normalizedPattern).replaceAll('\\*', '.*')}$`).test(url)
-		}
-
-		return parsedUrl.hostname === normalizedPattern || parsedUrl.hostname.endsWith(`.${normalizedPattern}`)
-	} catch {
-		return false
-	}
-}
-
-function escapeRegExp(value: string): string {
-	return value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
 }

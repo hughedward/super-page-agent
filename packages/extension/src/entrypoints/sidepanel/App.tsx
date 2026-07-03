@@ -1,4 +1,4 @@
-import { History, Send, Settings, Sparkles, Square } from 'lucide-react'
+import { BriefcaseBusiness, History, Send, Settings, Sparkles, Square } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ConfigPanel } from '@/components/ConfigPanel'
@@ -7,6 +7,7 @@ import { HistoryList } from '@/components/HistoryList'
 import { ActivityCard, EventCard } from '@/components/cards'
 import { EmptyState, Logo, MotionOverlay, StatusDot } from '@/components/misc'
 import { SkillsPanel } from '@/components/SkillsPanel'
+import { WorkspacePanel } from '@/components/WorkspacePanel'
 import { Button } from '@/components/ui/button'
 import {
 	InputGroup,
@@ -17,6 +18,12 @@ import {
 import { saveSession } from '@/lib/db'
 
 import { useAgent } from '../../agent/useAgent'
+import {
+	DEFAULT_WORKSPACE_ID,
+	type WorkspaceState,
+	loadWorkspaceState,
+	setActiveWorkspaceId,
+} from '../../agent/workspaces'
 
 type View =
 	| { name: 'chat' }
@@ -24,14 +31,32 @@ type View =
 	| { name: 'history' }
 	| { name: 'history-detail'; sessionId: string }
 	| { name: 'skills' }
+	| { name: 'workspace' }
 
 export default function App() {
 	const [view, setView] = useState<View>({ name: 'chat' })
 	const [inputValue, setInputValue] = useState('')
+	const [workspaceState, setWorkspaceState] = useState<WorkspaceState>({
+		workspaces: [],
+		activeWorkspaceId: DEFAULT_WORKSPACE_ID,
+	})
 	const historyRef = useRef<HTMLDivElement>(null)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 
 	const { status, history, activity, currentTask, config, execute, stop, configure } = useAgent()
+
+	useEffect(() => {
+		loadWorkspaceState().then(setWorkspaceState).catch(console.error)
+
+		const handleStorageChange = (changes: Record<string, chrome.storage.StorageChange>) => {
+			if (changes.workspaceState) {
+				loadWorkspaceState().then(setWorkspaceState).catch(console.error)
+			}
+		}
+
+		chrome.storage.local.onChanged.addListener(handleStorageChange)
+		return () => chrome.storage.local.onChanged.removeListener(handleStorageChange)
+	}, [])
 
 	// Persist session when task finishes
 	const prevStatusRef = useRef(status)
@@ -119,7 +144,22 @@ export default function App() {
 	}
 
 	if (view.name === 'skills') {
-		return <SkillsPanel onBack={() => setView({ name: 'chat' })} />
+		return (
+			<SkillsPanel
+				workspaceId={workspaceState.activeWorkspaceId}
+				onBack={() => setView({ name: 'chat' })}
+			/>
+		)
+	}
+
+	if (view.name === 'workspace') {
+		return (
+			<WorkspacePanel
+				workspaceState={workspaceState}
+				onWorkspaceStateChange={setWorkspaceState}
+				onBack={() => setView({ name: 'chat' })}
+			/>
+		)
 	}
 
 	if (view.name === 'history-detail') {
@@ -144,10 +184,36 @@ export default function App() {
 			<header className="flex items-center justify-between border-b px-3 py-2">
 				<div className="flex items-center gap-2">
 					<Logo className="size-5" />
-					<span className="text-sm font-medium">Page Agent Ext</span>
+					<div className="min-w-0">
+						<div className="text-sm font-medium leading-tight">Page Agent Ext</div>
+						<select
+							value={workspaceState.activeWorkspaceId}
+							onChange={(event) =>
+								setActiveWorkspaceId(event.target.value).then(setWorkspaceState)
+							}
+							className="block max-w-[150px] h-5 text-[10px] text-muted-foreground bg-transparent cursor-pointer outline-none"
+							aria-label="Workspace"
+						>
+							{workspaceState.workspaces.map((workspace) => (
+								<option key={workspace.id} value={workspace.id}>
+									{workspace.name}
+								</option>
+							))}
+						</select>
+					</div>
 				</div>
 				<div className="flex items-center gap-1">
 					<StatusDot status={status} />
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={() => setView({ name: 'workspace' })}
+						className="cursor-pointer"
+						aria-label="Workspace"
+						title="Workspace"
+					>
+						<BriefcaseBusiness className="size-3.5" />
+					</Button>
 					<Button
 						variant="ghost"
 						size="icon-sm"

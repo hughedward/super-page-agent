@@ -9,33 +9,49 @@ import { Textarea } from '@/components/ui/textarea'
 
 interface SkillsPanelProps {
 	onBack: () => void
+	workspaceId: string
 }
 
 type EditableSkill = BrowserSkill & {
 	matchPatternsText: string
 }
 
-export function SkillsPanel({ onBack }: SkillsPanelProps) {
+export function SkillsPanel({ onBack, workspaceId }: SkillsPanelProps) {
 	const [skills, setSkills] = useState<BrowserSkill[]>([])
 	const [selectedId, setSelectedId] = useState<string | null>(null)
 	const [draft, setDraft] = useState<EditableSkill | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [saving, setSaving] = useState(false)
 
+	const visibleSkills = useMemo(
+		() =>
+			skills.filter(
+				(skill) => skill.workspaceId === workspaceId || skill.workspaceId === GLOBAL_WORKSPACE_ID
+			),
+		[skills, workspaceId]
+	)
+
 	const selectedSkill = useMemo(
-		() => skills.find((skill) => skill.id === selectedId) ?? null,
-		[skills, selectedId]
+		() => visibleSkills.find((skill) => skill.id === selectedId) ?? null,
+		[visibleSkills, selectedId]
 	)
 
 	const refresh = useCallback(async () => {
 		try {
 			const loaded = await loadSkills()
 			setSkills(loaded)
-			setSelectedId((current) => current ?? loaded[0]?.id ?? null)
+			setSelectedId(
+				(current) =>
+					current ??
+					loaded.find(
+						(skill) => skill.workspaceId === workspaceId || skill.workspaceId === GLOBAL_WORKSPACE_ID
+					)?.id ??
+					null
+			)
 		} finally {
 			setLoading(false)
 		}
-	}, [])
+	}, [workspaceId])
 
 	useEffect(() => {
 		refresh().catch(console.error)
@@ -52,6 +68,11 @@ export function SkillsPanel({ onBack }: SkillsPanelProps) {
 		})
 	}, [selectedSkill])
 
+	useEffect(() => {
+		if (!selectedId || visibleSkills.some((skill) => skill.id === selectedId)) return
+		setSelectedId(visibleSkills[0]?.id ?? null)
+	}, [selectedId, visibleSkills])
+
 	const updateDraft = <K extends keyof EditableSkill>(key: K, value: EditableSkill[K]) => {
 		setDraft((current) => (current ? { ...current, [key]: value } : current))
 	}
@@ -60,6 +81,7 @@ export function SkillsPanel({ onBack }: SkillsPanelProps) {
 		const now = Date.now()
 		const skill: BrowserSkill = {
 			id: `skill-${now}`,
+			workspaceId,
 			name: 'New Skill',
 			description: '',
 			enabled: true,
@@ -77,6 +99,7 @@ export function SkillsPanel({ onBack }: SkillsPanelProps) {
 		try {
 			const nextSkill: BrowserSkill = {
 				id: draft.id,
+				workspaceId: draft.workspaceId,
 				name: draft.name.trim() || 'Untitled Skill',
 				description: draft.description?.trim() || undefined,
 				enabled: draft.enabled,
@@ -133,7 +156,7 @@ export function SkillsPanel({ onBack }: SkillsPanelProps) {
 			<div className="grid grid-cols-[112px_1fr] min-h-0 flex-1">
 				<aside className="border-r overflow-y-auto">
 					{loading && <div className="p-3 text-xs text-muted-foreground">Loading...</div>}
-					{skills.map((skill) => (
+					{visibleSkills.map((skill) => (
 						<button
 							key={skill.id}
 							type="button"
@@ -144,7 +167,11 @@ export function SkillsPanel({ onBack }: SkillsPanelProps) {
 						>
 							<div className="font-medium truncate">{skill.name}</div>
 							<div className="text-[10px] text-muted-foreground truncate">
-								{skill.enabled ? 'Enabled' : 'Disabled'}
+							{skill.workspaceId === GLOBAL_WORKSPACE_ID
+								? 'Global'
+								: skill.enabled
+									? 'Enabled'
+									: 'Disabled'}
 							</div>
 						</button>
 					))}
@@ -228,3 +255,4 @@ export function SkillsPanel({ onBack }: SkillsPanelProps) {
 		</div>
 	)
 }
+import { GLOBAL_WORKSPACE_ID } from '@/agent/workspaces'
