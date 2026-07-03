@@ -36,7 +36,13 @@ export function StatusDot({ status }: { status: AgentStatus }) {
 }
 
 export function Logo({ className }: { className?: string }) {
-	return <img src="/assets/page-agent-256.webp" alt="Super Page Agent" className={cn('', className)} />
+	return (
+		<img
+			src="/assets/super-page-agent-256.png"
+			alt="Super Page Agent"
+			className={cn('', className)}
+		/>
+	)
 }
 
 // Full-screen ai-motion glow overlay, shown only while running

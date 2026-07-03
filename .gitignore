@@ -28,6 +28,9 @@ dist-ssr
 # publish backup
 package.json.bak
 
+# local asset drops
+/image.png
+
 # env files
 .env
 .env.*
