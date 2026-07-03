@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ConfigPanel } from '@/components/ConfigPanel'
 import { HistoryDetail } from '@/components/HistoryDetail'
 import { HistoryList } from '@/components/HistoryList'
-import { ActivityCard, EventCard } from '@/components/cards'
-import { EmptyState, Logo, MotionOverlay, StatusDot } from '@/components/misc'
 import { SkillsPanel } from '@/components/SkillsPanel'
 import { WorkspacePanel } from '@/components/WorkspacePanel'
+import { ActivityCard, EventCard } from '@/components/cards'
+import { EmptyState, MotionOverlay, StatusDot } from '@/components/misc'
 import { Button } from '@/components/ui/button'
 import {
 	InputGroup,
@@ -182,26 +182,18 @@ export default function App() {
 			<MotionOverlay active={isRunning} />
 			{/* Header */}
 			<header className="flex items-center justify-between border-b px-3 py-2">
-				<div className="flex items-center gap-2">
-					<Logo className="size-5" />
-					<div className="min-w-0">
-						<div className="text-sm font-medium leading-tight">Super Page Agent</div>
-						<select
-							value={workspaceState.activeWorkspaceId}
-							onChange={(event) =>
-								setActiveWorkspaceId(event.target.value).then(setWorkspaceState)
-							}
-							className="block max-w-[150px] h-5 text-[10px] text-muted-foreground bg-transparent cursor-pointer outline-none"
-							aria-label="Workspace"
-						>
-							{workspaceState.workspaces.map((workspace) => (
-								<option key={workspace.id} value={workspace.id}>
-									{workspace.name}
-								</option>
-							))}
-						</select>
-					</div>
-				</div>
+				<select
+					value={workspaceState.activeWorkspaceId}
+					onChange={(event) => setActiveWorkspaceId(event.target.value).then(setWorkspaceState)}
+					className="h-8 min-w-0 max-w-[180px] rounded-md border border-transparent bg-transparent px-1 text-xs font-medium cursor-pointer outline-none hover:border-input hover:bg-muted/40"
+					aria-label="Workspace"
+				>
+					{workspaceState.workspaces.map((workspace) => (
+						<option key={workspace.id} value={workspace.id}>
+							{workspace.name}
+						</option>
+					))}
+				</select>
 				<div className="flex items-center gap-1">
 					<StatusDot status={status} />
 					<Button
